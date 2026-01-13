@@ -1,0 +1,195 @@
+{
+  "name": "EventWorkFlow",
+  "nodes": [
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "tableName": {
+          "__rl": true,
+          "value": "events",
+          "mode": "list",
+          "cachedResultName": "events"
+        },
+        "additionalFields": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTrigger",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -128
+      ],
+      "id": "8bd11ce9-9fbe-4ab2-9114-bf919c54c671",
+      "name": "Postgres Trigger",
+      "credentials": {
+        "postgres": {
+          "id": "kp2Y6c2iOvXMhHr6",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Tu es un assistant marketing. Rédige un paragraphe court et donnant envie pour l'événement : {{ $json.payload.name }}. Lieu : {{ $json.payload.place }}.\n\nRègle importante : Ne commence pas par 'Bonjour', donne juste le texte principal de l'invitation."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -272,
+        -128
+      ],
+      "id": "3e4a518a-9907-46d0-9391-4a44b9361dc7",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ZzZ2MrFvWb6ENaJq",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT email, first_name FROM subscribers WHERE is_active = TRUE;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        160,
+        -144
+      ],
+      "id": "903b3a8c-2f6a-4f21-ad2d-e42d499f7427",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "kp2Y6c2iOvXMhHr6",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        256,
+        80
+      ],
+      "id": "25913071-bc92-48d4-9d65-1ffadb683d8d",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "=Invitataion :  {{ $('Postgres Trigger').item.json.payload.name }}",
+        "emailType": "text",
+        "message": "=Bonjour  {{ $json.first_name }},\n{{ $json.content.parts[0].text }}\n\nCordalement , \nimad EL KHELYFY\n",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        496,
+        -80
+      ],
+      "id": "a0d89d17-d301-4b2e-8d8e-67aafa946af3",
+      "name": "Send a message",
+      "webhookId": "45dd6418-2515-45d0-98c8-d92ded07f6cc",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "tLfAaMGHAxO3xAnU",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Postgres Trigger": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "9b94012d-2394-4be9-a779-8bdc7d2b8ba6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "37af972fdc4c1c53978ddd55e9332b47706b0d75901b47cc51883c0ff6229d3d"
+  },
+  "id": "IvDfkYVSRLLEZUo2",
+  "tags": []
+}
